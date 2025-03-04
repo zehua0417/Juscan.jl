@@ -20,6 +20,14 @@ export AnnData,
 include("preprocessing/pp.jl")
 using .Pp
 export calculate_qc_metrics,
-  calculate_qc_metrics!, describe_obs, describe_obs!, describe_var, describe_var!
+  calculate_qc_metrics!,
+  describe_obs,
+  describe_obs!,
+  describe_var,
+  describe_var!,
+  filter_cells,
+  filter_genes,
+  filter_genes!,
+  filter_cells!
 
 end # module Juscan

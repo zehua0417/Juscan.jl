@@ -29,3 +29,19 @@ describe_obs!
 describe_var
 describe_var!
 ```
+
+## filter cells and genes
+
+### filter cells
+
+```@docs
+filter_cells
+filter_cells!
+```
+
+### filter genes
+
+```@docs
+filter_genes
+filter_genes!
+```

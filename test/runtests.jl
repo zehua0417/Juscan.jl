@@ -9,7 +9,12 @@ using SparseArrays
   include("anndata.jl")
 end
 
-@testset "preprocesing Module" begin
+@testset "preprocesing Module quality control" begin
   @info "preprocesing Module quality control metrics"
   include("preprocessing/qc.jl")
+end
+
+@testset "preprocesing Module filter cells" begin
+  @info "preprocesing Module filter cells"
+  include("preprocessing/filter.jl")
 end
