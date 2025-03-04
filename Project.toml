@@ -2,3 +2,17 @@ name = "Juscan"
 uuid = "02a04017-6c1f-44e0-981c-189fc986fd76"
 authors = ["LiZehua <zehuali0417@gmail.com>"]
 version = "0.1.0"
+
+[deps]
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Muon = "446846d7-b4ce-489d-bf74-72da18fe3629"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+
+[compat]
+DataFrames = "1.7.0"
+HDF5 = "0.17.2"
+LinearAlgebra = "1.11.0"
+Muon = "0.2.1"
+SparseArrays = "1.11.0"
