@@ -15,7 +15,8 @@ using SparseArrays, LinearAlgebra
 
 include("anndata.jl")
 export AnnData,
-  get_celltypes, subset_adata, subset_adata!, insert_obs!, insert_var!, read_h5ad, write_h5ad
+  get_celltypes, subset_adata, subset_adata!, insert_obs!, insert_var!, _get_obs_rep, _set_obs_rep!
+export read_h5ad, write_h5ad
 
 include("preprocessing/pp.jl")
 using .Pp
@@ -28,6 +29,8 @@ export calculate_qc_metrics,
   filter_cells,
   filter_genes,
   filter_genes!,
-  filter_cells!
+  filter_cells!,
+  normalize_total!,
+  normalize_total
 
 end # module Juscan

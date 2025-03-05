@@ -45,3 +45,10 @@ filter_cells!
 filter_genes
 filter_genes!
 ```
+
+## normalization
+
+```@docs
+normalize_total
+normalize_total!
+```

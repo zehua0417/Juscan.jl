@@ -83,6 +83,101 @@ function Base.show(io::IO, a::AnnData)
   nothing
 end
 
+#=========
+# getter #
+=========#
+#     _get_obs_rep(adata::Muon.AnnData; layer=nothing, obsm=nothing, obsp=nothing)
+# 
+# Retrieve the observation representation from an AnnData object.
+# 
+# # Arguments
+# - `adata::Muon.AnnData`: The AnnData object containing single-cell data.
+# - `layer::Union{Nothing, AbstractString}=nothing`: The specific layer from which to extract data.
+# - `obsm::Union{Nothing, AbstractString}=nothing`: The key in `obsm` containing the observation-level representation.
+# - `obsp::Union{Nothing, AbstractString}=nothing`: The key in `obsp` containing the pairwise observation-level representation.
+# 
+# # Returns
+# - The corresponding observation representation, either from `adata.X`, `adata.layers`, `adata.obsm`, or `adata.obsp`.
+# 
+# # Errors
+# - Throws an assertion error if more than one of `layer`, `obsm`, or `obsp` is specified.
+function _get_obs_rep(
+  adata::Muon.AnnData;
+  layer::Union{Nothing, AbstractString}=nothing,
+  obsm::Union{Nothing, AbstractString}=nothing,
+  obsp::Union{Nothing, AbstractString}=nothing,
+)
+  is_layer = layer !== nothing
+  is_obsm = obsm !== nothing
+  is_obsp = obsp !== nothing
+  choices_made = sum((is_layer, is_obsm, is_obsp))
+  @assert choices_made in (0, 1) "only one of layer, use_raw, obsm, obsp can be specified"
+  if choices_made == 0
+    return adata.X
+  elseif is_layer
+    return adata.layers[layer]
+  elseif is_obsm
+    return adata.obsm[obsm]
+  elseif is_obsp
+    return adata.obsp[obsp]
+  end
+end
+
+#=========
+# setter #
+=========#
+#     _set_obs_rep!(adata::Muon.AnnData, val::Any; use_raw=false, layer=nothing, obsm=nothing, obsp=nothing)
+# 
+# Set the observation representation in an AnnData object.
+# 
+# # Arguments
+# - `adata::Muon.AnnData`: The AnnData object to modify.
+# - `val::Any`: The new observation representation to set.
+# - `use_raw::Bool=false`: If `true`, modifies `adata.raw.X` instead of other fields.
+# - `layer::Union{String, Nothing}=nothing`: The specific layer in `adata.layers` to modify.
+# - `obsm::Union{String, Nothing}=nothing`: The key in `obsm` to set the observation-level representation.
+# - `obsp::Union{String, Nothing}=nothing`: The key in `obsp` to set the pairwise observation-level representation.
+# 
+# # Returns
+# - Nothing, modifies `adata` in place.
+# 
+# # Errors
+# - Throws an error if more than one of `use_raw`, `layer`, `obsm`, or `obsp` is specified.
+# - Throws an unexpected error message if an invalid case occurs.
+function _set_obs_rep!(
+  adata::Muon.AnnData,
+  val::Any;
+  use_raw::Bool=false,
+  layer::Union{String, Nothing}=nothing,
+  obsm::Union{String, Nothing}=nothing,
+  obsp::Union{String, Nothing}=nothing,
+)
+  is_layer = !isnothing(layer)
+  is_raw_flag = use_raw
+  is_obsm = !isnothing(obsm)
+  is_obsp = !isnothing(obsp)
+
+  choices_made = (is_layer ? 1 : 0) + (is_raw_flag ? 1 : 0) + (is_obsm ? 1 : 0) + (is_obsp ? 1 : 0)
+  if choices_made > 1
+    error("Multiple conflicting arguments provided.")
+  end
+
+  if choices_made == 0
+    adata.X = val
+  elseif is_layer
+    adata.layers[layer] = val
+  elseif is_raw_flag
+    adata.raw.X = val
+  elseif is_obsm
+    adata.obsm[obsm] = val
+  elseif is_obsp
+    adata.obsp[obsp] = val
+  else
+    error("Invalid arguments provided.")
+  end
+  return true
+end
+
 # subsetting and copying 
 
 #adata = read_h5ad("cortex_julia_anndata.h5ad")

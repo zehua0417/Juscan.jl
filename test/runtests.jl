@@ -18,3 +18,8 @@ end
   @info "preprocesing Module filter cells"
   include("preprocessing/filter.jl")
 end
+
+@testset "preprocesing Module normalization" begin
+  @info "preprocesing Module normalization"
+  include("preprocessing/normalization.jl")
+end
