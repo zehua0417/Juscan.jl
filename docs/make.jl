@@ -6,7 +6,11 @@ makedocs(
   pages=[
     "Home" => "index.md",
     "Tutorial" => Any["Quick Start" => "tutorial/quickstart.md"],
-    "API" => Any["Anndata Utils" => "api/anndata.md", "Preprocessing" => "api/preprocessing.md"],
+    "API" => Any[
+      "Anndata Utils" => "api/anndata.md",
+      "Preprocessing" => "api/preprocessing.md",
+      "Tools" => "api/tools.md",
+    ],
   ],
 )
 

@@ -33,4 +33,8 @@ export calculate_qc_metrics,
   normalize_total!,
   normalize_total
 
+include("tools/tl.jl")
+using .Tl
+export highly_variable_genes!, highly_variable_genes, subset_to_hvg!
+
 end # module Juscan

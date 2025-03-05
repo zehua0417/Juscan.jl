@@ -1,4 +1,4 @@
-# Preprocessing Modules
+# Preprocessing Module
 
 Preprocessing is a crucial step in single-cell and multi-omics data analysis. This module provides functions for quality control, filtering, and normalization to ensure that datasets are clean and ready for downstream analyses.
 

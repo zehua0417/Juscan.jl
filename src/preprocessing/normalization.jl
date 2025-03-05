@@ -24,7 +24,6 @@ function _normalize_data(
   end
   counts = counts ./ after
   # call helper function: divide each row (cell) by the corresponding element in counts
-  println("counts: ", size(counts))
   return axis_mul_or_truediv!(X, counts, 0, /, allow_divide_by_zero=false)
 end
 
