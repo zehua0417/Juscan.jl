@@ -30,4 +30,9 @@ highly_variable_genes!
 
 ## principal component analysis
 
+```@docs
+pca!
+umap!
+```
+
 ## clustering

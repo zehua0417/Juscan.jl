@@ -35,6 +35,6 @@ export calculate_qc_metrics,
 
 include("tools/tl.jl")
 using .Tl
-export highly_variable_genes!, highly_variable_genes, subset_to_hvg!
+export highly_variable_genes!, highly_variable_genes, subset_to_hvg!, pca!, umap!
 
 end # module Juscan

@@ -26,9 +26,13 @@ end
   end
 end
 
-@testset "preprocesing Module" begin
+@testset "tools Module" begin
   @testset "highly variable genes" begin
     @info "test highly variable genes"
     include("tools/hvg.jl")
+  end
+  @testset "pca" begin
+    @info "test pca"
+    include("tools/pca.jl")
   end
 end
