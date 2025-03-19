@@ -3,6 +3,7 @@ using Juscan.Pp
 using Test
 using DataFrames
 using SparseArrays
+using Muon
 
 @testset "Basic AnnData operations" begin
   @info "Basic AnnData operations"

@@ -6,7 +6,7 @@ description: This file implements Principal Component Analysis (PCA) and UMAP di
 =========================================#
 
 import ..Pp: normalize_total, normalize_total!
-using Statistics, UMAP
+using Statistics, UMAP, TSVD
 
 """
     pca!(adata::Muon.AnnData; layer::String="log_transformed", n_pcs::Int=1000, verbose::Bool=true)
@@ -114,7 +114,7 @@ function umap!(
   elseif !haskey(adata.layers, layer)
     @warn "layer $(layer) not found in `adata.layers`, calculating log-transformed normalized counts..."
     if !haskey(adata.layers, "normalized")
-      normalize_total!(adata; verbose=verbose)
+      normalize_total!(adata)
     end
     if !haskey(adata.layers, "log_transformed")
       log_transform!(adata, layer="normalized", verbose=verbose)
@@ -172,12 +172,18 @@ function standardize(x)
   (x .- Statistics.mean(x, dims=1)) ./ Statistics.std(x, dims=1)
 end
 
-function prcomps(mat, standardizeinput=true)
+function prcomps(mat::AbstractMatrix, standardizeinput=true)
   if standardizeinput
     mat = standardize(mat)
   end
-  u, s, v = LinearAlgebra.svd(mat)
-  prcomps = u * LinearAlgebra.Diagonal(s)
-  return prcomps
+  u, s, v = svd(mat)
+  return u * Diagonal(s)
 end
 
+function prcomps(mat::SparseArrays.SparseMatrixCSC, standardizeinput=true, n_pcs=50)
+  if standardizeinput
+    mat = standardize(mat)
+  end
+  U, S, Vt = TSVD.tsvd(mat, n_pcs)
+  return U * Diagonal(S)
+end
