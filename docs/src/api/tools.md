@@ -33,6 +33,12 @@ highly_variable_genes!
 ```@docs
 pca!
 umap!
+log_transform!
+logp1_transform!
 ```
 
 ## clustering
+
+```@docs
+clustering!
+```

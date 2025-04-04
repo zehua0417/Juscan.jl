@@ -5,39 +5,38 @@ date: 2025-02-23 17:45
 description: This file implements Principal Component Analysis (PCA) and UMAP dimensionality reduction methods for AnnData objects.
 =========================================#
 
-import ..Pp: normalize_total, normalize_total!
+import ..Pp: normalize_total, normalize_total!, _set_obs_rep!
 using Statistics, UMAP, TSVD
 
 """
-    pca!(adata::Muon.AnnData; layer::String="log_transformed", n_pcs::Int=1000, verbose::Bool=true)
+    pca!(adata::Muon.AnnData; layer="log_transformed", n_pcs=1000, key_added="pca", verbose=true)
 
-Perform Principal Component Analysis (PCA) on the specified data layer of an `AnnData` object.
+Performs Principal Component Analysis (PCA) on the specified layer of an `AnnData` object and stores the result in `adata.obsm`.
 
-If the specified `layer` does not exist in `adata.layers`, the function checks for a `"log_transformed"` layer.
-If it is not found, it checks for a `"normalized"` layer to perform log-transformation.
-If neither is available, the function will normalize and log-transform the original data `adata.X`.
-After processing, the function computes the PCA using the first `n_pcs` columns (or the minimum available dimension if `n_pcs` exceeds the data dimensions)
-and stores the resulting principal components in `adata.obsm["PCA"]`.
+If the specified layer is missing, the function will attempt to log-transform a normalized layer, or normalize and log-transform the raw counts if needed.
 
 # Arguments
-- `adata`: An instance of `Muon.AnnData` containing the data matrix and associated metadata.
-- `layer`: The key of the data layer to be used for PCA (default: `"log_transformed"`).
-- `n_pcs`: The number of principal components to compute (default: 1000).
-- `verbose`: If `true`, prints informational messages (default: `true`).
+- `adata::Muon.AnnData`: The annotated data object on which to perform PCA.
+
+## Keyword Arguments
+- `layer::String = "log_transformed"`: The data layer to use for PCA. Defaults to `"log_transformed"`.
+- `n_pcs::Int = 1000`: The number of principal components to compute. Automatically clipped to the smallest matrix dimension if too large.
+- `key_added::String = "pca"`: The key under which to store the PCA result in `adata.obsm`.
+- `verbose::Bool = true`: Whether to print progress messages.
 
 # Returns
-The updated `adata` with the PCA result stored in `adata.obsm["PCA"]`.
+The modified `AnnData` object with PCA results stored in `adata.obsm[key_added]`.
 
-# Examples
-```julia
-adata = ...  # initialize AnnData
-pca!(adata; layer="log_transformed", n_pcs=50, verbose=false)
-```
+# Notes
+- This function performs automatic preprocessing if the requested layer is not present.
+- The PCA is computed via SVD on standardized data.
+
 """
 function pca!(
   adata::Muon.AnnData;
   layer::String="log_transformed",
   n_pcs::Int=1000,
+  key_added::String="pca",
   verbose::Bool=true,
 )
   if !haskey(adata.layers, layer)
@@ -46,12 +45,13 @@ function pca!(
       verbose && @info "calculating PCA on log-transformed layer..."
     elseif haskey(adata.layers, "normalized")
       verbose && @info "log-transforming normalized counts before applying PCA..."
-      log_transform!(adata, layer="normalized", verbose=verbose)
+      log_transform!(adata, layer="normalized", key_added="log_transformed", verbose=verbose)
       verbose && @info "calculating PCA on log-transformed normalized counts..."
     else
       verbose && @info "normalizing and log-transforming before applying PCA..."
-      normalize_total(adata)
-      log_transform!(adata, layer="normalized", verbose=verbose)
+      norm_res = normalize_total(adata)
+      _set_obs_rep!(adata, norm_res["X"], layer="normalized")
+      log_transform!(adata, layer="normalized", key_added="log_transformed", verbose=verbose)
       verbose && @info "calculating PCA on log-transformed normalized counts..."
     end
     X = adata.layers["log_transformed"]
@@ -67,57 +67,59 @@ function pca!(
 
   pcs = prcomps(X[:, 1:n_pcs])
 
-  adata.obsm["PCA"] = pcs[:, 1:n_pcs]
+  adata.obsm[key_added] = pcs[:, 1:n_pcs]
   return adata
 end
 
 """
-    umap!(adata::Muon.AnnData; layer::String="log_transformed", use_pca_init::Bool=false, n_pcs::Int=100, verbose::Bool=true, kwargs...)
+    umap!(adata::Muon.AnnData; layer="log_transformed", use_pca=nothing, n_pcs=100, key_added="umap", verbose=true, kwargs...)
 
-Compute a UMAP embedding for the data in an `AnnData` object.
+Computes a UMAP embedding from the data in the specified layer or PCA representation and stores the result in `adata.obsm`.
 
-If `use_pca_init` is `true`, PCA is performed using `pca!(...)` to initialize the embedding.
-If the specified `layer` does not exist in `adata.layers`, the function will check for a `"normalized"` layer and perform
-normalization and log-transformation as needed.
-The resulting data (either from PCA initialization or directly from the specified layer) is then passed to the UMAP algorithm.
-The UMAP result, including the low-dimensional embedding, nearest neighbors (`knns`), distances (`knn_dists`),
-and the fuzzy neighbor graph, is stored in the `adata` object.
+If PCA is requested via `use_pca`, it will be computed automatically if not already present.
 
 # Arguments
-- `adata`: An instance of `Muon.AnnData` containing the data matrix and associated metadata.
-- `layer`: The key of the data layer to be used for UMAP (default: `"log_transformed"`).
-- `use_pca_init`: If `true`, perform PCA initialization prior to UMAP (default: `false`).
-- `n_pcs`: The number of principal components to compute if using PCA initialization (default: 100).
-- `verbose`: If `true`, prints informational messages (default: `true`).
-- `kwargs`: Additional keyword arguments passed to the UMAP algorithm.
+- `adata::Muon.AnnData`: The annotated data object on which to compute UMAP.
+
+## Keyword Arguments
+- `layer::String = "log_transformed"`: The layer to use as input if `use_pca` is not specified.
+- `use_pca::Union{String, Nothing} = nothing`: If specified, use this key in `adata.obsm` as PCA input. If missing, it will be computed.
+- `n_pcs::Int = 100`: Number of principal components to use if PCA needs to be computed.
+- `key_added::String = "umap"`: The key under which to store the UMAP embedding.
+- `verbose::Bool = true`: Whether to print progress messages.
+- `kwargs...`: Additional keyword arguments passed to `UMAP.UMAP_()`.
 
 # Returns
-The updated `adata` with the UMAP embedding stored in `adata.obsm["umap"]`, along with nearest neighbor and graph information.
+The modified `AnnData` object with UMAP results stored in:
+- `adata.obsm[key_added]`: The UMAP embedding.
+- `adata.obsm["knns"]`: K-nearest neighbors matrix.
+- `adata.obsm["knn_dists"]`: KNN distance matrix.
+- `adata.obsp["fuzzy_neighbor_graph"]`: Fuzzy graph representation.
 
-# Examples
-```julia
-adata = ...  # initialize AnnData
-umap!(adata; layer="log_transformed", use_pca_init=true, n_pcs=50, verbose=false, n_neighbors=15)
-```
+# Notes
+- Automatically performs normalization and log transformation if necessary.
+- Uses the `UMAP.jl` package under the hood.
+
 """
 function umap!(
   adata::Muon.AnnData;
   layer::String="log_transformed",
-  use_pca_init::Bool=false,
+  use_pca::Union{AbstractString, Nothing}=nothing,
   n_pcs::Int=100,
+  key_added::String="umap",
   verbose::Bool=true,
   kwargs...,
 )
-  if use_pca_init
+  if !isnothing(use_pca)
     pca!(adata; layer=layer, n_pcs=n_pcs, verbose=verbose)
-    X = adata.obsm["PCA"]
+    X = adata.obsm[use_pca]
   elseif !haskey(adata.layers, layer)
     @warn "layer $(layer) not found in `adata.layers`, calculating log-transformed normalized counts..."
     if !haskey(adata.layers, "normalized")
       normalize_total!(adata)
     end
     if !haskey(adata.layers, "log_transformed")
-      log_transform!(adata, layer="normalized", verbose=verbose)
+      log_transform!(adata, layer="normalized", key_added="log_transformed", verbose=verbose)
     end
     X = adata.layers["log_transformed"]
   else
@@ -128,7 +130,7 @@ function umap!(
   umap_result = UMAP.UMAP_(X'; kwargs...)
 
   # store results
-  adata.obsm["umap"] = umap_result.embedding'
+  adata.obsm[key_added] = umap_result.embedding'
   adata.obsm["knns"] = umap_result.knns'
   adata.obsm["knn_dists"] = umap_result.dists'
 
@@ -137,23 +139,73 @@ function umap!(
   return adata
 end
 
-function log_transform!(adata::Muon.AnnData; layer::String="normalized", verbose::Bool=false)
+"""
+    log_transform!(adata::Muon.AnnData; layer="normalized", key_added="log_transformed", verbose=false)
+
+Applies a log transformation to the specified data layer of an `AnnData` object and stores the result in `adata.layers`.
+
+If the specified layer is missing, the function defaults to applying a log(1 + x) transformation to `adata.X`.
+
+# Arguments
+- `adata::Muon.AnnData`: The data object to transform.
+
+## Keyword Arguments
+- `layer::String = "normalized"`: The layer to transform. Must exist in `adata.layers`.
+- `key_added::String = "log_transformed"`: The key to store the result under in `adata.layers`.
+- `verbose::Bool = false`: Whether to print messages during the process.
+
+# Returns
+The modified `AnnData` object with the log-transformed data added to `adata.layers[key_added]`.
+
+# Notes
+- The transformation is log(x + ϵ), where ϵ is a small constant to avoid log(0).
+- For default fallback behavior, see `logp1_transform!()`.
+
+"""
+function log_transform!(
+  adata::Muon.AnnData;
+  layer::String="normalized",
+  key_added::AbstractString="log_transformed",
+  verbose::Bool=false,
+)
   if !haskey(adata.layers, layer)
     @warn "layer $(layer) not found in `adata.layers`, defaulting to log + 1 transformation on `adata.X`..."
-    logp1_transform!(adata; verbose=verbose)
-    adata.layers["log_transformed"] = adata.layers["logp1_transformed"]
+    logp1_transform!(adata; key_added="logp1_transformed", verbose=verbose)
+    adata.layers[key_added] = adata.layers["logp1_transformed"]
     return adata
   else
     verbose && @info "performing log transformation on layer $(layer)..."
     X = adata.layers[layer]
-    adata.layers["log_transformed"] = log.(X .+ eps(eltype(X)))
+    adata.layers[key_added] = log.(X .+ eps(eltype(X)))
     return adata
   end
 end
 
+"""
+    logp1_transform!(adata::Muon.AnnData; layer=nothing, key_added="log1_transformed", verbose=false)
+
+Applies a log(1 + x) transformation to the specified layer or the main data matrix `adata.X` in an `AnnData` object. The result is stored in `adata.layers[key_added]`.
+
+# Arguments
+- `adata::Muon.AnnData`: The annotated data object to transform.
+
+## Keyword Arguments
+- `layer::Union{String, Nothing} = nothing`: The name of the data layer to transform. If `nothing` or the layer is missing, uses `adata.X`.
+- `key_added::AbstractString = "log1_transformed"`: The name under which to store the transformed result in `adata.layers`.
+- `verbose::Bool = false`: Whether to print transformation messages.
+
+# Returns
+The modified `AnnData` object with the log(1 + x) transformed data stored in `adata.layers[key_added]`.
+
+# Notes
+- This transformation is commonly used to stabilize variance and reduce the effect of outliers.
+- Compared to `log_transform!`, this version adds 1 to the data before taking the logarithm, making it more robust to zero entries.
+
+"""
 function logp1_transform!(
   adata::Muon.AnnData;
   layer::Union{String, Nothing}=nothing,
+  key_added::AbstractString="log1_transformed",
   verbose::Bool=false,
 )
   if haskey(adata.layers, layer)
@@ -164,7 +216,7 @@ function logp1_transform!(
     X = adata.X
   end
 
-  adata.layers["logp1_transformed"] = log.(X .+ one(eltype(X)))
+  adata.layers[key_added] = log.(X .+ one(eltype(X)))
   return adata
 end
 

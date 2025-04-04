@@ -5,35 +5,36 @@ using DataFrames
 using SparseArrays
 using Muon
 
-@testset "Basic AnnData operations" begin
-  @info "Basic AnnData operations"
-  include("anndata.jl")
+function runtests()
+  all_results = Test.DefaultTestSet[]  # 存放每组测试结果
+
+  function run_named_test(name::AbstractString, filepath::AbstractString)
+    @info "Testing $name..."
+    return @testset "$name" begin
+      include(filepath)
+    end
+  end
+
+  push!(all_results, @testset "Basic AnnData operations" begin
+    run_named_test("AnnData", "anndata.jl")
+  end)
+
+  push!(all_results, @testset "preprocessing Module" begin
+    run_named_test("quality control", "preprocessing/qc.jl")
+    run_named_test("filter cells", "preprocessing/filter.jl")
+    run_named_test("normalization", "preprocessing/normalization.jl")
+  end)
+
+  push!(all_results, @testset "tools Module" begin
+    run_named_test("highly variable genes", "tools/hvg.jl")
+    run_named_test("pca", "tools/pca.jl")
+    run_named_test("cluster", "tools/cluster.jl")
+  end)
+
+  for result in all_results
+    println()
+    Test.print_test_results(result)
+  end
 end
 
-@testset "preprocesing Module" begin
-  @testset "quality control" begin
-    @info "test quality control metrics"
-    include("preprocessing/qc.jl")
-  end
-
-  @testset "filter cells" begin
-    @info "test filter cells"
-    include("preprocessing/filter.jl")
-  end
-
-  @testset "normalization" begin
-    @info "test normalization"
-    include("preprocessing/normalization.jl")
-  end
-end
-
-@testset "tools Module" begin
-  @testset "highly variable genes" begin
-    @info "test highly variable genes"
-    include("tools/hvg.jl")
-  end
-  @testset "pca" begin
-    @info "test pca"
-    include("tools/pca.jl")
-  end
-end
+runtests()

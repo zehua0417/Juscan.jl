@@ -9,14 +9,16 @@ module Juscan
 
 using DataFrames
 using HDF5
+using Random
 using Muon
 using Muon: AnnData
 using SparseArrays, LinearAlgebra
+using Distributed
 
 include("anndata.jl")
 export AnnData,
   get_celltypes, subset_adata, subset_adata!, insert_obs!, insert_var!, _get_obs_rep, _set_obs_rep!
-export read_h5ad, write_h5ad
+export readh5ad, writeh5ad
 
 include("preprocessing/pp.jl")
 using .Pp
@@ -35,6 +37,7 @@ export calculate_qc_metrics,
 
 include("tools/tl.jl")
 using .Tl
-export highly_variable_genes!, highly_variable_genes, subset_to_hvg!, pca!, umap!
+export highly_variable_genes!,
+  highly_variable_genes, subset_to_hvg!, pca!, umap!, log_transform!, logp1_transform!, clustering!
 
 end # module Juscan
