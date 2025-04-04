@@ -5,6 +5,9 @@ date: 2025-03-02 15:37
 description: This file contains functions for calculating quality control (QC) metrics for single-cell or multi-omics data. It includes utilities for computing per-cell and per-gene metrics, as well as support functions for matrix manipulation and QC calculations.
 =========================================#
 
+using StatsBase: partialsort
+using Base.Threads
+
 """
     calculate_qc_metrics!(adata; expr_type="counts", var_type="genes", qc_vars=String[], 
                           percent_top=[50, 100, 200, 500], layer=nothing, use_raw=false, 
@@ -288,7 +291,7 @@ function describe_obs(
   for qc_var in qc_vars
     # (log1p) total counts for each cell for each qc_var
     obs_metrics[!, "total_$(expr_type)_$(qc_var)"] =
-      axis_sum(X[adata.var[!, qc_var] .== true, :], 1)
+      vec(axis_sum(X[:, adata.var[!, qc_var] .== true], axis=2))
     if use_log1p
       obs_metrics[!, "log1p_total_$(expr_type)_$(qc_var)"] =
         log1p.(obs_metrics[!, "total_$(expr_type)_$(qc_var)"])
@@ -524,36 +527,53 @@ The result is normalized by the total column sum.
 - The function assumes that the input matrix is sparse and that `ns` is sorted in ascending order.
 - The result is normalized by the column sums, so each value represents a proportion.
 ==#
+
 function top_segment_proportions(
-  mtx::SparseArrays.SparseMatrixCSC{T, I},
+  mtx::SparseMatrixCSC{T, I},
   ns::Union{Vector{<:Integer}, Nothing}=[50, 100, 200, 500],
 )::Matrix{T} where {T <: Real, I <: Integer}
-  # Ensure ns is sorted in ascending order
   ns = sort(ns)
+  max_n = ns[end]
   num_rows, num_cols = size(mtx)
 
-  # Calculate the sum of each row
-  row_sums = sum(mtx, dims=2)[:]
+  if num_cols < max_n
+    throw(
+      ArgumentError("The number of columns in the matrix is less than the largest segment size"),
+    )
+  end
 
-  # Initialize the result matrix
+  row_sums = sum(mtx, dims=2)[:]
   values = zeros(T, num_rows, length(ns))
 
-  # For each row, extract the top `ns[-1]` values
-  for j in 1:num_rows
-    row = mtx[j, :] |> collect  # Convert sparse column to dense vector
-    sorted_row = sort(row, rev=true)  # Sort in descending order
-    acc = zero(T)  # Accumulator for cumulative sum
+  I_inds, J_inds, V_vals = findnz(mtx)
+
+  row_map = Vector{Vector{T}}(undef, num_rows)
+  for i in 1:num_rows
+    row_map[i] = T[]
+  end
+  for (i, j, v) in zip(I_inds, J_inds, V_vals)
+    push!(row_map[i], v)
+  end
+
+  @threads for j in 1:num_rows
+    row_vals = row_map[j]
+
+    if length(row_vals) < max_n
+      extended = vcat(row_vals, zeros(T, max_n - length(row_vals)))
+    else
+      extended = row_vals
+    end
+
+    tops = partialsort(extended, 1:max_n; rev=true)
+
+    acc = zero(T)
     prev = 0
     for (i, n) in enumerate(ns)
-      if num_cols < n
-        throw(ArgumentError("The number of rows in the matrix is less than the segment size"))
-      end
-      acc += sum(sorted_row[(prev + 1):n])  # Sum the top `n` values
+      acc += sum(@view tops[(prev + 1):n])
       values[j, i] = acc
       prev = n
     end
   end
 
-  # Normalize the result by column sums
   return values ./ row_sums
 end

@@ -22,6 +22,10 @@ function axis_sum(X::SparseArrays.SparseMatrixCSC{T, I}; axis::Int) where {T <: 
   end
 end
 
+function axis_sum(X::SparseArrays.SparseMatrixCSC{T, I}, axis::Int) where {T <: Real, I <: Integer}
+  axis_sum(X; axis=axis)
+end
+
 function axis_mean(X::SparseArrays.SparseMatrixCSC{T, I}; axis::Int) where {T <: Real, I <: Integer}
   if axis == 1 || axis == 2
     return sum(X, dims=axis) ./ axis_nnz(X, axis=axis)
