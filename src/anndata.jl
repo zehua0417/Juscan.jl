@@ -279,7 +279,11 @@ function subset_adata!(
 )
   #adata.ncells = length(subset_inds)
 
-  adata.X = adata.X[subset_inds, :]
+  if isa(adata.X, Adjoint) && isa(parent(adata.X), SparseMatrixCSC)
+    adata.X = adjoint(parent(adata.X)[:, subset_inds])
+  else
+    adata.X = adata.X[subset_inds, :]
+  end
 
   adata.obs_names = adata.obs_names[subset_inds]
 
@@ -287,9 +291,11 @@ function subset_adata!(
     adata.obs = adata.obs[subset_inds, :]
   end
 
-  if length(adata.layers) > 0
-    for key in keys(adata.layers)
-      adata.layers[key] = setindex!(adata.layers, adata.layers[key][subset_inds, :], key)
+  for (key, layer) in adata.layers
+    if isa(layer, Adjoint) && isa(parent(layer), SparseMatrixCSC)
+      adata.layers[key] = adjoint(parent(layer)[:, subset_inds])
+    else
+      adata.layers[key] = layer[subset_inds, :]
     end
   end
 
@@ -313,7 +319,11 @@ function subset_adata!(
   subset_inds::Union{Int, Vector{Int}, Vector{Bool}, UnitRange},
   ::Val{:genes},
 )
-  adata.X = adata.X[:, subset_inds]
+  if isa(adata.X, Adjoint) && isa(parent(adata.X), SparseMatrixCSC)
+    adata.X = adjoint(parent(adata.X)[subset_inds, :])
+  else
+    adata.X = adata.X[:, subset_inds]
+  end
 
   if length(adata.var_names) > 0
     adata.var_names = adata.var_names[subset_inds]
@@ -323,9 +333,11 @@ function subset_adata!(
     adata.var = adata.var[subset_inds, :]
   end
 
-  if length(adata.layers) > 0
-    for key in keys(adata.layers)
-      adata.layers[key] = setindex!(adata.layers, adata.layers[key][:, subset_inds], key)
+  for (key, layer) in adata.layers
+    if isa(layer, Adjoint) && isa(parent(layer), SparseMatrixCSC)
+      adata.layers[key] = adjoint(parent(layer)[subset_inds, :])
+    else
+      adata.layers[key] = layer[:, subset_inds]
     end
   end
 

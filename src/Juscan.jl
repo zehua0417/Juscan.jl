@@ -7,6 +7,8 @@ description: Main module for Juscan
 
 module Juscan
 
+const VERSION = v"0.1.0"
+
 using DataFrames
 using HDF5
 using Random
@@ -39,5 +41,10 @@ include("tools/tl.jl")
 using .Tl
 export highly_variable_genes!,
   highly_variable_genes, subset_to_hvg!, pca!, umap!, log_transform!, logp1_transform!, clustering!
+
+include("plots/pl.jl")
+using .Pl
+export expand_palette,
+  get_continuous_colormap, violin, scatter, hvg_scatter, plot_variance_ratio, plot_umap
 
 end # module Juscan

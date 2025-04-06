@@ -25,6 +25,7 @@ makedocs(
       "Anndata Utils" => "api/anndata.md",
       "Preprocessing" => "api/preprocessing.md",
       "Tools" => "api/tools.md",
+      "Plots" => "api/plots.md",
     ],
   ],
 )

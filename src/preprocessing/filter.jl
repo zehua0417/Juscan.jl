@@ -380,7 +380,7 @@ function filter_genes!(
   end
 
   # filter adata in place 
-  subset_adata!(adata, gene_subset, :genes)
+  subset_adata!(data, gene_subset, :genes)
 
   return nothing
 end

@@ -65,9 +65,10 @@ function pca!(
     n_pcs = minimum(size(X))
   end
 
-  pcs = prcomps(X[:, 1:n_pcs])
+  pcs, s = prcomps(X[:, 1:n_pcs])
 
   adata.obsm[key_added] = pcs[:, 1:n_pcs]
+  adata.uns["pca_variance"] = s
   return adata
 end
 
@@ -229,7 +230,7 @@ function prcomps(mat::AbstractMatrix, standardizeinput=true)
     mat = standardize(mat)
   end
   u, s, v = svd(mat)
-  return u * Diagonal(s)
+  return u * Diagonal(s), s
 end
 
 function prcomps(mat::SparseArrays.SparseMatrixCSC, standardizeinput=true, n_pcs=50)
@@ -237,5 +238,5 @@ function prcomps(mat::SparseArrays.SparseMatrixCSC, standardizeinput=true, n_pcs
     mat = standardize(mat)
   end
   U, S, Vt = TSVD.tsvd(mat, n_pcs)
-  return U * Diagonal(S)
+  return U * Diagonal(S), S
 end

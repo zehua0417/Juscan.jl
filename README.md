@@ -47,27 +47,28 @@ Here’s a simple example demonstrating basic single-cell data preprocessing and
 ```julia
 using Juscan
 
-# Load single-cell data (assuming the data is in AnnData format)
-adata = Juscan.read_h5ad("data/sample.h5ad")
+# Load the dataset
+adata = Juscan.readh5ad("data/data.h5ad")
 
-# Data preprocessing: normalization and calculate quality control metrics
-Juscan.normalize!(adata)
-Juscan.calculate_qc_metrics!(adata)
+# Quality control
+Juscan.Pp.filter_cells!(adata, min_genes=100, max_genes=8000, max_counts=140000)
+Juscan.Pp.filter_genes!(adata, min_cells=3)
+adata.var.mt = startswith.(adata.var_names, "MT-")
+Juscan.Pp.calculate_qc_metrics!(adata, qc_vars=["mt"])
 
-# filter cells and genes
-filter_cells(adata, min_counts = 100)
-filter_genes(adata, min_cells = 10)
+# Normalization and log transformation
+adata.layers["normalized"] = deepcopy(adata.X)
+Juscan.Pp.normalize_total!(adata, target_sum=1000, layer="normalized")
+Juscan.Tl.logp1_transform!(adata, layer="normalized", key_added="normalized_logp1")
 
-# calc highly variable genes
-highly_variable_genes!(adata)
+# Highly variable genes and PCA
+Juscan.Tl.highly_variable_genes!(adata, n_top_genes=2000, layer="normalized_logp1")
+Juscan.Tl.pca!(adata; layer="normalized_logp1", key_added="pca", n_pcs=15)
 
-# TODO: Dimensionality reduction and clustering
-Juscan.pca!(adata)
-Juscan.neighbors!(adata)
-Juscan.leiden!(adata)
-
-# TODO: Visualize the results
-Juscan.plot_umap(adata)
+# Clustering and UMAP visualization
+Juscan.Tl.clustering!(adata, method="km", use_pca=15, cluster_K=4)
+Juscan.Tl.umap!(adata; layer="normalized_logp1", key_added="umap", n_pcs=15)
+Juscan.Pl.plot_umap(adata, color_by="clusters_0.5")
 ```
 
 ## Contributing
@@ -93,6 +94,7 @@ We would like to extend our sincere gratitude to the open source community for t
 - [Scanpy](https://github.com/theislab/scanpy) for its groundbreaking approach to single-cell analysis,
 - [AnnData](https://github.com/theislab/anndata) for providing a robust data structure for annotated data,
 - [Muon.jl](https://github.com/scverse/Muon.jl.git) for its innovative multi-omic analysis tools, and
+- [Automatic Single-cell Toolbox (ASCT)](https://github.com/kaji331/ASCT)：An automated single-cell data analysis toolbox inspired by Seurat v4 in R.
 - [scVI.jl](https://github.com/maren-ha/scVI.jl.git) for offering valuable insights into variational inference methods.
 
 Their contributions and ideas have been instrumental in shaping the development and direction of Juscan.jl.

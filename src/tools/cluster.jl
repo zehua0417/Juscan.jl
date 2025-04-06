@@ -100,7 +100,7 @@ function clustering!(
   if typeof(use_pca) <: AbstractString
     # use_pca = obj.meta[use_pca]
     # use_pca = _get_obs_rep(data, layer=use_pca)
-    use_pca = data.obsm[use_pca]
+    use_pca = data.uns[use_pca]
   end
 
   # Check resolution

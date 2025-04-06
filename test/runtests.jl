@@ -31,6 +31,10 @@ function runtests()
     run_named_test("cluster", "tools/cluster.jl")
   end)
 
+  push!(all_results, @testset "plots Module" begin
+    run_named_test("colors", "plots/colors.jl")
+  end)
+
   for result in all_results
     println()
     Test.print_test_results(result)
