@@ -144,7 +144,7 @@ function violin(
     if jitter != false
       jwidth = jitter === true ? 0.3 : jitter
       x_jittered = 1 .+ jwidth .* (rand(length(data)) .- 0.5)
-      CairoMakie.scatter!(ax, x_jittered, data; color=RGBAf(0, 0, 0, 0.1), markersize=dot_size)
+      CairoMakie.scatter!(ax, x_jittered, data; color=RGBAf(0, 0, 0, 0.7), markersize=dot_size)
     end
   end
 
@@ -361,7 +361,7 @@ Plots UMAP embedding colored by a categorical label in `adata.obs`.
 """
 function plot_umap(
   adata;
-  color_by::String="clusters_0.6",
+  color_by::String="clusters_latest",
   key="umap",
   palette_name::String="rainbow",
   width::Real=800,

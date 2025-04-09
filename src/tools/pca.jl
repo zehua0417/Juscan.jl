@@ -6,7 +6,7 @@ description: This file implements Principal Component Analysis (PCA) and UMAP di
 =========================================#
 
 import ..Pp: normalize_total, normalize_total!, _set_obs_rep!
-using Statistics, UMAP, TSVD
+using Statistics, UMAP, TSVD, Distances, MultivariateStats
 
 """
     pca!(adata::Muon.AnnData; layer="log_transformed", n_pcs=1000, key_added="pca", verbose=true)
@@ -34,6 +34,7 @@ The modified `AnnData` object with PCA results stored in `adata.obsm[key_added]`
 """
 function pca!(
   adata::Muon.AnnData;
+  method::AbstractString="pca",
   layer::String="log_transformed",
   n_pcs::Int=1000,
   key_added::String="pca",
@@ -65,10 +66,21 @@ function pca!(
     n_pcs = minimum(size(X))
   end
 
-  pcs, s = prcomps(X[:, 1:n_pcs])
+  if method == "pca"
+    X = Matrix(X)'
+    M = MultivariateStats.fit(PCA, X; maxoutdim=n_pcs)
+    Y = MultivariateStats.transform(M, X)' |> Matrix
+    var = principalvars(M)
+    adata.obsm[key_added] = Y[:, 1:n_pcs]
+    adata.uns["pca_variance"] = var
+  elseif method == "svd"
+    pcs, s = prcomps(X[:, 1:n_pcs])
+    adata.obsm[key_added] = pcs[:, 1:n_pcs]
+    adata.uns["pca_variance"] = s
+  else
+    @error "Unknown PCA method: $(method). Use 'pca' or 'svd'."
+  end
 
-  adata.obsm[key_added] = pcs[:, 1:n_pcs]
-  adata.uns["pca_variance"] = s
   return adata
 end
 
@@ -109,11 +121,27 @@ function umap!(
   n_pcs::Int=100,
   key_added::String="umap",
   verbose::Bool=true,
+  map_dims::Integer=2,
+  seed::Integer=-1,
+  n_neighbors::Integer=30,
+  metric::SemiMetric=CosineDist(),
+  min_dist::Real=0.5,
+  n_epochs::Integer=300,
+  learning_rate::Real=1,
+  init::Symbol=:spectral,
+  spread::Real=2,
+  set_operation_ratio::Real=1,
+  local_connectivity::Integer=1,
+  repulsion_strength::Real=1,
+  neg_sample_rate::Integer=5,
   kwargs...,
 )
+  if n_pcs <= 2
+    return "Nothing to do! The 'use_pc' must be larger than 2!"
+  end
+
   if !isnothing(use_pca)
-    pca!(adata; layer=layer, n_pcs=n_pcs, verbose=verbose)
-    X = adata.obsm[use_pca]
+    X = adata.obsm[use_pca][:, 1:n_pcs]
   elseif !haskey(adata.layers, layer)
     @warn "layer $(layer) not found in `adata.layers`, calculating log-transformed normalized counts..."
     if !haskey(adata.layers, "normalized")
@@ -126,16 +154,32 @@ function umap!(
   else
     X = adata.layers[layer]
   end
-  # calculate UMAP
 
-  umap_result = UMAP.UMAP_(X'; kwargs...)
+  # calculate UMAP
+  Random.seed!(seed != -1 ? seed : 1984)
+  @info "calculating UMAP"
+  umap_result = UMAP.umap(
+    X',
+    map_dims;
+    n_neighbors=n_neighbors,
+    metric=metric,
+    min_dist=min_dist,
+    n_epochs=n_epochs,
+    learning_rate=learning_rate,
+    init=init,
+    spread=spread,
+    set_operation_ratio=set_operation_ratio,
+    local_connectivity=local_connectivity,
+    repulsion_strength=repulsion_strength,
+    neg_sample_rate=neg_sample_rate,
+  )
+  @info "UMAP calculation completed."
 
   # store results
-  adata.obsm[key_added] = umap_result.embedding'
-  adata.obsm["knns"] = umap_result.knns'
-  adata.obsm["knn_dists"] = umap_result.dists'
-
-  adata.obsp["fuzzy_neighbor_graph"] = umap_result.graph
+  adata.obsm[key_added] = umap_result'
+  # adata.obsm["knns"] = umap_result.knns'
+  # adata.obsm["knn_dists"] = umap_result.dists'
+  # adata.obsp["fuzzy_neighbor_graph"] = umap_result.graph
 
   return adata
 end

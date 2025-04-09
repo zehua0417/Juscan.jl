@@ -529,9 +529,9 @@ The result is normalized by the total column sum.
 ==#
 
 function top_segment_proportions(
-  mtx::SparseMatrixCSC{T, I},
+  mtx::SparseMatrixCSC,
   ns::Union{Vector{<:Integer}, Nothing}=[50, 100, 200, 500],
-)::Matrix{T} where {T <: Real, I <: Integer}
+)::Matrix
   ns = sort(ns)
   max_n = ns[end]
   num_rows, num_cols = size(mtx)
@@ -543,13 +543,13 @@ function top_segment_proportions(
   end
 
   row_sums = sum(mtx, dims=2)[:]
-  values = zeros(T, num_rows, length(ns))
+  values = zeros(num_rows, length(ns))
 
   I_inds, J_inds, V_vals = findnz(mtx)
 
-  row_map = Vector{Vector{T}}(undef, num_rows)
+  row_map = Vector{Vector{Float64}}(undef, num_rows)
   for i in 1:num_rows
-    row_map[i] = T[]
+    row_map[i] = Float64[]
   end
   for (i, j, v) in zip(I_inds, J_inds, V_vals)
     push!(row_map[i], v)
@@ -559,14 +559,14 @@ function top_segment_proportions(
     row_vals = row_map[j]
 
     if length(row_vals) < max_n
-      extended = vcat(row_vals, zeros(T, max_n - length(row_vals)))
+      extended = vcat(row_vals, zeros(Float64, max_n - length(row_vals)))
     else
       extended = row_vals
     end
 
     tops = partialsort(extended, 1:max_n; rev=true)
 
-    acc = zero(T)
+    acc = 0.0
     prev = 0
     for (i, n) in enumerate(ns)
       acc += sum(@view tops[(prev + 1):n])
