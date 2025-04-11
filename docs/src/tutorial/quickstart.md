@@ -95,8 +95,8 @@ Juscan.Pp.filter_cells!(adata, max_counts=10000)
 Juscan.Tl.clustering!(adata, method="km", use_pca=15, cluster_K=4, dist="Euclidean")
 Juscan.Tl.umap!(
   adata;
-  layer="normalized_logp1",
   key_added="umap",
+  use_pca="pca",
   n_pcs=15,
   min_dist=0.5,
   n_neighbors=50,

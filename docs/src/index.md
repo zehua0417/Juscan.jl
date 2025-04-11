@@ -61,7 +61,7 @@ Juscan.Tl.pca!(adata; layer="normalized_logp1", key_added="pca", n_pcs=15)
 
 # Clustering and UMAP visualization
 Juscan.Tl.clustering!(adata, method="km", use_pca=15, cluster_K=4)
-Juscan.Tl.umap!(adata; layer="normalized_logp1", key_added="umap", n_pcs=15)
+Juscan.Tl.umap!(adata; key_added="umap", n_pcs=15, use_pca="pca")
 Juscan.Pl.plot_umap(adata, color_by="clusters_0.5")
 ```
 
@@ -88,6 +88,7 @@ We would like to extend our sincere gratitude to the open source community for t
 - [Scanpy](https://github.com/theislab/scanpy) for its groundbreaking approach to single-cell analysis,
 - [AnnData](https://github.com/theislab/anndata) for providing a robust data structure for annotated data,
 - [Muon.jl](https://github.com/scverse/Muon.jl.git) for its innovative multi-omic analysis tools, and
+- [Automatic Single-cell Toolbox (ASCT)](https://github.com/kaji331/ASCT)：An automated single-cell data analysis toolbox inspired by Seurat v4 in R.
 - [scVI.jl](https://github.com/maren-ha/scVI.jl.git) for offering valuable insights into variational inference methods.
 
 Their contributions and ideas have been instrumental in shaping the development and direction of Juscan.jl.

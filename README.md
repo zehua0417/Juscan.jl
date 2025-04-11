@@ -67,7 +67,7 @@ Juscan.Tl.pca!(adata; layer="normalized_logp1", key_added="pca", n_pcs=15)
 
 # Clustering and UMAP visualization
 Juscan.Tl.clustering!(adata, method="km", use_pca=15, cluster_K=4)
-Juscan.Tl.umap!(adata; layer="normalized_logp1", key_added="umap", n_pcs=15)
+Juscan.Tl.umap!(adata; key_added="umap", n_pcs=15, use_pca="pca")
 Juscan.Pl.plot_umap(adata, color_by="clusters_0.5")
 ```
 
